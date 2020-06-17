@@ -18,7 +18,8 @@
     "purescript-effect": "^2.0.1",
     "purescript-parsing": "^5.0.3",
     "purescript-foreign": "^5.0.0",
-    "purescript-parsing-validation": "markfarrell/purescript-parsing-validation#^0.0.3"
+    "purescript-parsing-validation": "markfarrell/purescript-parsing-validation#^0.0.3",
+    "purescript-ffi-foreign": "markfarrell/purescript-ffi-foreign#^0.0.1"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0"
