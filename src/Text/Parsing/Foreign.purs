@@ -1,5 +1,6 @@
 module Text.Parsing.Foreign
-  ( string
+  ( index
+  , string
   , int
   , boolean
   , number
@@ -37,6 +38,12 @@ input = gets \(P.ParseState x _ _ ) -> x
 
 hoist :: forall a m b. Monad m => Parser a b -> ParserT a m b
 hoist =  P.hoistParserT (\(Identity x) -> pure x)
+
+readIndex :: forall a m. Index a => Monad m => a -> ParserT Foreign m Foreign
+readIndex k = hoist $ do
+  x <- input
+  y <- V.success (x ! k)
+  pure y
 
 readString :: forall a m. Index a => Monad m => a -> ParserT Foreign m String
 readString k = hoist $ do
@@ -91,6 +98,9 @@ readKeys = hoist $ do
   x <- input
   y <- V.success $ K.keys x
   pure y
+
+index :: forall a b m. Index a => Monad m => a -> ParserT Foreign m b -> ParserT Foreign m b
+index k = V.output (readIndex k)
 
 string :: forall a b m. Index a => Monad m => a -> ParserT String m b -> ParserT Foreign m b
 string k = V.output (readString k)
