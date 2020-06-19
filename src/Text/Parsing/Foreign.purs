@@ -1,27 +1,26 @@
 module Text.Parsing.Foreign
-  ( index
+  ( keys
+  , values
+  , index
   , string
-  , int
+  , char
   , boolean
+  , int
   , number
   , array
   , null
   , undefined
   , nullOrUndefined
-  , keys
-  , values
   ) where
 
 import Prelude
 
 import Control.Monad.State.Class (gets)
-import Control.Monad.Trans.Class (lift)
 
 import Data.Identity (Identity(..))
 import Data.Maybe (Maybe)
 
 import Data.Traversable (class Traversable)
-import Data.Traversable as T
 
 import Foreign (Foreign)
 import Foreign.Index (class Index, (!))
@@ -54,16 +53,22 @@ readString k = hoistParser $ do
   y <- V.success (x ! k >>= F.readString)
   pure y
 
-readInt :: forall a m. Index a => Monad m => a -> ParserT Foreign m Int
-readInt k = hoistParser $ do
+readChar :: forall a m. Index a => Monad m => a -> ParserT Foreign m Char
+readChar k = hoistParser $ do
   x <- readInput
-  y <- V.success (x ! k >>= F.readInt)
+  y <- V.success (x ! k >>= F.readChar)
   pure y
 
 readBoolean :: forall a m. Index a => Monad m => a -> ParserT Foreign m Boolean
 readBoolean k = hoistParser $ do
   x <- readInput
   y <- V.success (x ! k >>= F.readBoolean)
+  pure y
+
+readInt :: forall a m. Index a => Monad m => a -> ParserT Foreign m Int
+readInt k = hoistParser $ do
+  x <- readInput
+  y <- V.success (x ! k >>= F.readInt)
   pure y
 
 readNumber :: forall a m. Index a => Monad m => a -> ParserT Foreign m Number
@@ -102,11 +107,20 @@ readKeys = hoistParser $ do
   y <- V.success $ K.keys x
   pure y
 
+keys :: forall a m. Monad m => Traversable m => ParserT String m a -> ParserT Foreign m (Array a)
+keys = flip V.apply readKeys
+
+values :: forall a m. Monad m => Traversable m => ParserT Foreign m a -> ParserT Foreign m (Array a)
+values = flip V.apply (O.values <$> readInput)
+
 index :: forall a b m. Index a => Monad m => a -> ParserT Foreign m b -> ParserT Foreign m b
 index k = V.output (readIndex k)
 
 string :: forall a b m. Index a => Monad m => a -> ParserT String m b -> ParserT Foreign m b
 string k = V.output (readString k)
+
+char :: forall a b m. Index a => Monad m => a -> ParserT Char m b -> ParserT Foreign m b
+char k = V.output (readChar k)
 
 int :: forall a b m. Index a => Monad m => String -> ParserT Int m b -> ParserT Foreign m b
 int k = V.output (readInt k)
@@ -128,23 +142,3 @@ undefined k = V.output (readUndefined k)
 
 nullOrUndefined :: forall a b m. Index a => Monad m => String -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
 nullOrUndefined k = V.output (readNullOrUndefined k)
-
-keys :: forall a m. Monad m => Traversable m => ParserT String m a -> ParserT Foreign m (Array a)
-keys p = do
-   u <- readKeys
-   v <- pure (flip P.runParserT p <$> u)
-   w <- pure $ T.sequence v
-   x <- lift w
-   y <- pure $ T.sequence x
-   z <- V.right y
-   pure z
-
-values :: forall a m. Monad m => Traversable m => ParserT Foreign m a -> ParserT Foreign m (Array a)
-values p = do
-   u <- O.values <$> readInput
-   v <- pure (flip P.runParserT p <$> u)
-   w <- pure $ T.sequence v
-   x <- lift w
-   y <- pure $ T.sequence x
-   z <- V.right y
-   pure z
