@@ -9,6 +9,7 @@ You can edit this file as you like.
   , "ffi-foreign"
   , "foreign"
   , "parsing"
+  , "parsing-expect"
   , "parsing-validation"
   , "prelude"
   , "psci-support"
