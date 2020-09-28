@@ -1,6 +1,5 @@
 module Text.Parsing.Foreign
   ( keys
-  , values
   , index
   , string
   , char
@@ -19,6 +18,7 @@ import Control.Monad.State.Class (gets)
 
 import Data.Identity (Identity(..))
 import Data.Maybe (Maybe)
+import Data.Either (Either(..))
 
 import Data.Traversable (class Traversable)
 
@@ -32,8 +32,6 @@ import Text.Parsing.Parser (ParserT, Parser)
 import Text.Parsing.Parser as P
 
 import Text.Parsing.Combinators.Validation as V
-
-import FFI.Foreign.Object as O
 
 readInput :: forall a m. Monad m => ParserT a m a
 readInput = gets \(P.ParseState x _ _ ) -> x
@@ -109,11 +107,11 @@ readKeys = hoistParser $ do
 
 {-- | Applies a parser to each of the keys of the foreign parse input. --}
 keys :: forall a m. Monad m => Traversable m => ParserT String m a -> ParserT Foreign m (Array a)
-keys = flip V.apply readKeys
-
-{-- | Applies a parser to each of the values of the foreign parse input. --}
-values :: forall a m. Monad m => Traversable m => ParserT Foreign m a -> ParserT Foreign m (Array a)
-values = flip V.apply (O.values <$> readInput)
+keys p = do
+  x <- V.or (pure []) (V.apply p $ readKeys)
+  case x of
+    (Left y)  -> pure y
+    (Right y) -> pure y
 
 {-- | Applies a parser to a foreign value at a given index of the foreign parse input. --}
 index :: forall a b m. Index a => Monad m => a -> ParserT Foreign m b -> ParserT Foreign m b
@@ -128,29 +126,29 @@ char :: forall a b m. Index a => Monad m => a -> ParserT Char m b -> ParserT For
 char k = V.output (readChar k)
 
 {-- | Applies a parser to an integer at a given index of the foreign parse input. --}
-int :: forall a b m. Index a => Monad m => String -> ParserT Int m b -> ParserT Foreign m b
+int :: forall a b m. Index a => Monad m => a -> ParserT Int m b -> ParserT Foreign m b
 int k = V.output (readInt k)
 
 {-- | Applies a parser to a boolean at a given index of the foreign parse input. --}
-boolean :: forall a b m. Index a => Monad m => String -> ParserT Boolean m b -> ParserT Foreign m b
+boolean :: forall a b m. Index a => Monad m => a -> ParserT Boolean m b -> ParserT Foreign m b
 boolean k = V.output (readBoolean k)
 
 {-- | Applies a parser to a number at a given index of the foreign parse input. --}
-number :: forall a b m. Index a => Monad m => String -> ParserT Number m b -> ParserT Foreign m b
+number :: forall a b m. Index a => Monad m => a -> ParserT Number m b -> ParserT Foreign m b
 number k = V.output (readNumber k)
 
 {-- | Applies a parser to an array of foreign values at a given index of the foreign parse input. --}
-array :: forall a b m. Index a => Monad m => String -> ParserT (Array Foreign) m b -> ParserT Foreign m b
+array :: forall a b m. Index a => Monad m => a -> ParserT (Array Foreign) m b -> ParserT Foreign m b
 array k = V.output (readArray k)
 
-{-- | Applies a parser to a null value at a given index of the foreign parse input. --}
-null :: forall a b m. Index a => Monad m => String -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
+{-- | Applies a parser to a nullable value at a given index of the foreign parse input. --}
+null :: forall a b m. Index a => Monad m => a -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
 null k = V.output (readNull k)
 
-{-- | Applies a parser to an undefined value at a given index of the foreign parse input. --}
-undefined :: forall a b m. Index a => Monad m => String -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
+{-- | Applies a parser to an optionally undefined value at a given index of the foreign parse input. --}
+undefined :: forall a b m. Index a => Monad m => a -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
 undefined k = V.output (readUndefined k)
 
-{-- | Applies a parser to a null-or-undefined value at a given index of the foreign parse input. --}
-nullOrUndefined :: forall a b m. Index a => Monad m => String -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
+{-- | Applies a parser to an optionally null-or-undefined value at a given index of the foreign parse input. --}
+nullOrUndefined :: forall a b m. Index a => Monad m => a -> ParserT (Maybe Foreign) m b -> ParserT Foreign m b
 nullOrUndefined k = V.output (readNullOrUndefined k)
